@@ -1,0 +1,13 @@
+[bind]
+host = "127.0.0.1"
+port = 53535
+
+[[dns_server]]
+ip_address = "1.1.1.1"
+port = 853
+hostname = "cloudflare-dns.com"
+
+[[dns_server]]
+ip_address = "8.8.8.8"
+port = 853
+hostname = "dns.google"
