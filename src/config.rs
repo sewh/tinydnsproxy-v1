@@ -4,6 +4,14 @@ use std::io;
 use toml;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct BlockList {
+    pub list_type: String,
+    pub format: String,
+    pub path: Option<String>,
+    pub url: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct BindDetails {
     pub host: String,
     pub port: u16,
@@ -19,13 +27,15 @@ pub struct DnsServer {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
     pub bind: BindDetails,
+    pub block_list: Vec<BlockList>,
     pub dns_server: Vec<DnsServer>,
 }
 
 impl Config {
     pub fn from_toml(path: String) -> io::Result<Config> {
         let toml_contents = fs::read_to_string(path)?;
-        let config = toml::from_str(toml_contents.as_str())?;
+        let config: Config = toml::from_str(toml_contents.as_str())?;
+
         Ok(config)
     }
 }
@@ -44,6 +54,16 @@ mod tests {
 [bind]
 host = "0.0.0.0"
 port = 53
+
+[[block_list]]
+list_type = "file"
+format = "hosts"
+path = "/tmp/block.list"
+
+[[block_list]]
+list_type = "file"
+format = "one-per-line"
+path = "/tmp/block.2.list"
 
 [[dns_server]]
 ip_address = "1.1.1.1"
@@ -69,6 +89,21 @@ hostname = "dns.google"
             },
         ];
 
+	let lists = vec![
+	    BlockList {
+		list_type: "file".to_string(),
+		format: "hosts".to_string(),
+		path: Some("/tmp/block.list".to_string()),
+		url: None
+	    },
+	    BlockList {
+		list_type: "file".to_string(),
+		format: "one-per-line".to_string(),
+		path: Some("/tmp/block.2.list".to_string()),
+		url: None
+	    }
+	];
+
         let mut t = NamedTempFile::new().unwrap();
         t.write_all(f.as_bytes()).unwrap();
 
@@ -78,9 +113,18 @@ hostname = "dns.google"
         assert_eq!(c.bind.host, "0.0.0.0");
         assert_eq!(c.bind.port, 53);
 
-        let from_config: Vec<String> = c.dns_server.into_iter().map(|x| x.ip_address).collect();
-        let already_done: Vec<String> = servers.into_iter().map(|x| x.ip_address).collect();
+        let servers_from_config: Vec<String> = c.dns_server.into_iter().map(|x| x.ip_address).collect();
+        let servers_already_done: Vec<String> = servers.into_iter().map(|x| x.ip_address).collect();
 
-        assert_eq!(from_config, already_done);
+        assert_eq!(servers_from_config, servers_already_done);
+
+	for i in 0..lists.len() {
+	    let list_already_done = &lists[i];
+	    let list_from_config = &c.block_list[i];
+
+	    assert_eq!(list_already_done.list_type, list_from_config.list_type);
+	    assert_eq!(list_already_done.format, list_from_config.format);
+	    assert_eq!(list_already_done.path, list_from_config.path);
+	}
     }
 }

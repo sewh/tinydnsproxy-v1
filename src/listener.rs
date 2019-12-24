@@ -1,8 +1,9 @@
 use std::io;
 use std::net::{SocketAddr, UdpSocket};
-use std::sync::mpsc;
+use std::sync::{Arc, mpsc, RwLock};
 use std::thread;
 
+use crate::block_list::BlockLists;
 use crate::config::Config;
 use crate::message;
 use crate::tls_connection;
@@ -10,6 +11,7 @@ use crate::tls_connection;
 #[derive(Debug)]
 pub struct Listener {
     config: Config,
+    block_lists: Arc<RwLock<Option<BlockLists>>>,
     shut_tx: mpsc::Sender<bool>,
     shut_rx: mpsc::Receiver<bool>,
 }
@@ -18,11 +20,18 @@ impl Listener {
     pub fn from_config(config: &Config) -> Listener {
         let (tx, rx) = mpsc::channel::<bool>();
         let c = config.clone();
+	let block_lists = Arc::new(RwLock::new(None));
         Listener {
             config: c,
+	    block_lists: block_lists,
             shut_tx: tx,
             shut_rx: rx,
         }
+    }
+
+    pub fn set_blocklists(&mut self, block_lists: BlockLists) {
+	let block_lists = Arc::new(RwLock::new(Some(block_lists)));
+	self.block_lists = block_lists;
     }
 
     pub fn _shutdown(&self) {

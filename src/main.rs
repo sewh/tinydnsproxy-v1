@@ -1,13 +1,18 @@
+#[macro_use] extern crate lazy_static;
 extern crate native_tls;
 extern crate rand;
 extern crate serde;
+extern crate regex;
 extern crate toml;
 
+mod block_list;
 mod config;
+mod dns_message;
 mod listener;
 mod message;
 mod tls_connection;
 
+use block_list::{BlockLists, BlockListFormat};
 use config::Config;
 use listener::Listener;
 use std::env;
@@ -37,8 +42,34 @@ fn main() {
         }
     };
 
+    // Create a block list from the config
+    let mut block_lists = BlockLists::new();
+    for entry in &config.block_list {
+	let format = match entry.format.as_str() {
+	    "hosts" => BlockListFormat::Hosts,
+	    "one-per-line" => BlockListFormat::OnePerLine,
+	    _ => {
+		println!("Unknown block list format: {}", entry.format);
+		exit(1);
+	    }
+	};
+
+	if entry.format == "file" {
+	    let path = match &entry.path {
+		Some(p) => p,
+		None => continue
+	    };
+	    if block_lists.add_file(&path, &format).is_err() {
+		continue;
+	    }
+	}
+    }
+
     // Use the config to create a listener
-    let listener = Listener::from_config(&config);
+    let mut listener = Listener::from_config(&config);
+
+    // Set blocks lists
+    listener.set_blocklists(block_lists);
 
     // Begin listening and serving
     println!(
@@ -49,7 +80,7 @@ fn main() {
     match res {
         Ok(_) => println!("Done with no errors"),
         Err(e) => println!("Failed: {}", e),
-    }
+    };
 
     exit(0);
 }

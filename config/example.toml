@@ -1,6 +1,42 @@
+
+# The 'bind' section tells us how to listen for DNS on the
+# local network. 'host' is the IP to bind on ('0.0.0.0' for
+# all interfaces or '127.0.0.1' for just the local machine.)
+# Port is the UDP port to listen on.
+
 [bind]
 host = "127.0.0.1"
 port = 53535
+
+# The block list details the location and type of a block
+# list to use. tinydnsproxy currently supports:
+#
+# * Local files :: 'list_type' should be 'file' and 'path'
+#   should point at the location on disk of the file.
+#
+# There are a few different file formats we support. 'hosts',
+# which is the format of hosts.txt files (e.g. entry on each
+# line, each entry is [IP to redirect to] [hostname]). The
+# other format is 'one-per-line' in which there's one domain
+# per line to block. All formats permit '#' comments.
+
+[[block_list]]
+list_type = "file"
+format = "hosts"
+path = "/tmp/block.list"
+
+[[block_list]]
+list_type = "file"
+format = "one-per-line"
+path = "/tmp/block.2.list"
+
+# The DNS server blocks detail upstream DNS-over-TLS resolvers.
+# The 'ip_address' and 'port' describes how to create a TCP
+# connection with the resolving service. The 'hostname' is used
+# in the TLS handshake and must be correspond to the common name
+# (or 'CN') of the X.509 certificate we receive back. If it doesn't
+# line up then the TLS connection will be terminated because the
+# remote resolver isn't trusted.
 
 [[dns_server]]
 ip_address = "1.1.1.1"
