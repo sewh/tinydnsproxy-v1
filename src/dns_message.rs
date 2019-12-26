@@ -19,6 +19,7 @@ impl std::fmt::Debug for DnsMessageError {
 
 
 type HostnameResult = std::result::Result<String, DnsMessageError>;
+type NxDomainResult = std::result::Result<Vec<u8>, DnsMessageError>;
 
 pub fn hostname_from_bytes(bytes: &[u8]) -> HostnameResult {
     let mut cursor = Cursor::new(bytes);
@@ -98,6 +99,31 @@ pub fn hostname_from_bytes(bytes: &[u8]) -> HostnameResult {
     };
 
     Ok(as_string)
+}
+
+pub fn create_nxdomain(request: &[u8]) -> NxDomainResult {
+    let mut output = Vec::from(request);
+    let mut cursor = Cursor::new(&mut output);
+    let response_bytes = vec![0x81, 0x83];
+
+    // We replace the flags to make it look like NXDomain
+    match cursor.seek(SeekFrom::Start(2)) {
+	Err(_) => {
+	    let e = DnsMessageError::new();
+	    return Err(e);
+	},
+	_ => (),
+    };
+
+    match cursor.write(&response_bytes) {
+	Err(_) => {
+	    let e = DnsMessageError::new();
+	    return Err(e);
+	},
+	_ => (),
+    };
+
+    Ok(output)
 }
 
 #[cfg(test)]

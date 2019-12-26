@@ -116,19 +116,26 @@ impl Listener {
 		Err(_) => () // TODO add some logging or something
 	    }
 
-	    if should_block {
-		return;
-	    }
-
-            // Spin up a TLS connection to a provider, fire the query at them, and get a
-            // response
-            let res = match tls_connection::relay_message(serialized.as_slice(), &c) {
-                Ok(res) => res,
-                Err(e) => {
-                    println!("TLS Error: {}", e);
-                    return;
-                }
-            };
+	    let res = match should_block {
+		true => {
+		    match dns_message::create_nxdomain(&msg) {
+			Ok(r) => r,
+			Err(_) => {
+			    // TODO add some logging here
+			    return;
+			}
+		    }
+		},
+		false => {
+		    match tls_connection::relay_message(serialized.as_slice(), &c) {
+			Ok(res) => res,
+			Err(e) => {
+			    println!("TLS Error: {}", e);
+			    return;
+			}
+		    }	    
+		}
+	    };
 
             // Send the response back to the client
             match socket.send_to(res.as_slice(), &src) {
