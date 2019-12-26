@@ -1,8 +1,9 @@
-#[macro_use] extern crate lazy_static;
+#[macro_use]
+extern crate lazy_static;
 extern crate native_tls;
 extern crate rand;
-extern crate serde;
 extern crate regex;
+extern crate serde;
 extern crate toml;
 
 mod block_list;
@@ -12,7 +13,7 @@ mod listener;
 mod message;
 mod tls_connection;
 
-use block_list::{BlockLists, BlockListFormat};
+use block_list::{BlockListFormat, BlockLists};
 use config::Config;
 use listener::Listener;
 use std::env;
@@ -45,24 +46,28 @@ fn main() {
     // Create a block list from the config
     let mut block_lists = BlockLists::new();
     for entry in &config.block_list {
-	let format = match entry.format.as_str() {
-	    "hosts" => BlockListFormat::Hosts,
-	    "one-per-line" => BlockListFormat::OnePerLine,
-	    _ => {
-		println!("Unknown block list format: {}", entry.format);
-		exit(1);
-	    }
-	};
+        let format = match entry.format.as_str() {
+            "hosts" => BlockListFormat::Hosts,
+            "one-per-line" => BlockListFormat::OnePerLine,
+            _ => {
+                println!("Unknown block list format: {}", entry.format);
+                exit(1);
+            }
+        };
 
-	if entry.format == "file" {
-	    let path = match &entry.path {
-		Some(p) => p,
-		None => continue
-	    };
-	    if block_lists.add_file(&path, &format).is_err() {
-		continue;
-	    }
-	}
+        if entry.list_type == "file" {
+            let path = match &entry.path {
+                Some(p) => p,
+                None => {
+		    println!("There is a file block list entry without a path!");
+		    continue;
+		},
+            };
+            if block_lists.add_file(&path, &format).is_err() {
+		println!("Couldn't add file {}", path);
+                continue;
+            }
+        }
     }
 
     // Use the config to create a listener

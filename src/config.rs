@@ -89,20 +89,20 @@ hostname = "dns.google"
             },
         ];
 
-	let lists = vec![
-	    BlockList {
-		list_type: "file".to_string(),
-		format: "hosts".to_string(),
-		path: Some("/tmp/block.list".to_string()),
-		url: None
-	    },
-	    BlockList {
-		list_type: "file".to_string(),
-		format: "one-per-line".to_string(),
-		path: Some("/tmp/block.2.list".to_string()),
-		url: None
-	    }
-	];
+        let lists = vec![
+            BlockList {
+                list_type: "file".to_string(),
+                format: "hosts".to_string(),
+                path: Some("/tmp/block.list".to_string()),
+                url: None,
+            },
+            BlockList {
+                list_type: "file".to_string(),
+                format: "one-per-line".to_string(),
+                path: Some("/tmp/block.2.list".to_string()),
+                url: None,
+            },
+        ];
 
         let mut t = NamedTempFile::new().unwrap();
         t.write_all(f.as_bytes()).unwrap();
@@ -113,18 +113,19 @@ hostname = "dns.google"
         assert_eq!(c.bind.host, "0.0.0.0");
         assert_eq!(c.bind.port, 53);
 
-        let servers_from_config: Vec<String> = c.dns_server.into_iter().map(|x| x.ip_address).collect();
+        let servers_from_config: Vec<String> =
+            c.dns_server.into_iter().map(|x| x.ip_address).collect();
         let servers_already_done: Vec<String> = servers.into_iter().map(|x| x.ip_address).collect();
 
         assert_eq!(servers_from_config, servers_already_done);
 
-	for i in 0..lists.len() {
-	    let list_already_done = &lists[i];
-	    let list_from_config = &c.block_list[i];
+        for i in 0..lists.len() {
+            let list_already_done = &lists[i];
+            let list_from_config = &c.block_list[i];
 
-	    assert_eq!(list_already_done.list_type, list_from_config.list_type);
-	    assert_eq!(list_already_done.format, list_from_config.format);
-	    assert_eq!(list_already_done.path, list_from_config.path);
-	}
+            assert_eq!(list_already_done.list_type, list_from_config.list_type);
+            assert_eq!(list_already_done.format, list_from_config.format);
+            assert_eq!(list_already_done.path, list_from_config.path);
+        }
     }
 }

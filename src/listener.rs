@@ -1,10 +1,11 @@
 use std::io;
 use std::net::{SocketAddr, UdpSocket};
-use std::sync::{Arc, mpsc, RwLock};
+use std::sync::{mpsc, Arc, RwLock};
 use std::thread;
 
 use crate::block_list::BlockLists;
 use crate::config::Config;
+use crate::dns_message;
 use crate::message;
 use crate::tls_connection;
 
@@ -20,18 +21,18 @@ impl Listener {
     pub fn from_config(config: &Config) -> Listener {
         let (tx, rx) = mpsc::channel::<bool>();
         let c = config.clone();
-	let block_lists = Arc::new(RwLock::new(None));
+        let block_lists = Arc::new(RwLock::new(None));
         Listener {
             config: c,
-	    block_lists: block_lists,
+            block_lists: block_lists,
             shut_tx: tx,
             shut_rx: rx,
         }
     }
 
     pub fn set_blocklists(&mut self, block_lists: BlockLists) {
-	let block_lists = Arc::new(RwLock::new(Some(block_lists)));
-	self.block_lists = block_lists;
+        let block_lists = Arc::new(RwLock::new(Some(block_lists)));
+        self.block_lists = block_lists;
     }
 
     pub fn _shutdown(&self) {
@@ -86,6 +87,7 @@ impl Listener {
 
     fn handle_request(&self, msg: Vec<u8>, socket: UdpSocket, src: SocketAddr) {
         let c = self.config.clone();
+	let block_lists = self.block_lists.clone();
 
         // Spin up a new thread to handle this from now on
         thread::spawn(move || {
@@ -97,6 +99,26 @@ impl Listener {
                     return;
                 }
             };
+
+	    // Check to see if the domain is in the block list
+	    let mut should_block = false;
+	    match dns_message::hostname_from_bytes(&msg) {
+		Ok(hostname) => {
+		    // Get a read-only handle to the block lists and check them
+		    match &*block_lists.read().unwrap() {
+			Some(l) => {
+			    should_block = l.is_blocked(&hostname);
+			},
+			None => (),
+		    }
+
+		},
+		Err(_) => () // TODO add some logging or something
+	    }
+
+	    if should_block {
+		return;
+	    }
 
             // Spin up a TLS connection to a provider, fire the query at them, and get a
             // response
