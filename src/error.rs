@@ -24,9 +24,11 @@ impl BlockListError {
 
 impl fmt::Display for BlockListError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+	use BlockListErrorKind::*;
+
 	let suffix = match &self.kind {
-	    BlockListErrorKind::Io(e) => format!("{}", e),
-	    BlockListErrorKind::NoEntries => "No block list entries".to_string(),
+	    Io(e) => format!("{}", e),
+	    NoEntries => "No block list entries".to_string(),
 	};
 	write!(f, "Block list error: {}", suffix)
     } 
@@ -73,11 +75,13 @@ impl DnsMessageError {
 
 impl fmt::Display for DnsMessageError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+	use DnsMessageErrorKind::*;
+
 	let suffix = match &self.kind {
-	    DnsMessageErrorKind::Io(e) => format!("{}", e),
-	    DnsMessageErrorKind::StringEncoding(e) => format!("{}", e),
-	    DnsMessageErrorKind::TooManyQuestions => "Too many DNS questions in request".to_string(),
-	    DnsMessageErrorKind::UnexpectedReadLength => "Read an unexpected amount of data".to_string()
+	    Io(e) => format!("{}", e),
+	    StringEncoding(e) => format!("{}", e),
+	    TooManyQuestions => "Too many DNS questions in request".to_string(),
+	    UnexpectedReadLength => "Read an unexpected amount of data".to_string()
 	};
 	write!(f, "DNS Message Parsing Error: {}", suffix)
     }
@@ -131,7 +135,14 @@ impl TlsMessageError {
 
 impl fmt::Display for TlsMessageError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-	write!(f, "TlsMessageError!")
+	use TlsMessageErrorKind::*;
+
+	let suffix = match &self.kind {
+	    Io(e) => format!("{}", e),
+	    ProtocolSizeMismatch => "Received a message that was a different size to what the protocol said it should be".to_string(),
+	    BadInputData => "Input buffer is incorrect".to_string(),
+	};
+	write!(f, "DNS-over-TLS Message Error: {}", suffix)
     }
 }
 
