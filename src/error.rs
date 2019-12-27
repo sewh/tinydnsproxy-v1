@@ -73,7 +73,13 @@ impl DnsMessageError {
 
 impl fmt::Display for DnsMessageError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-	write!(f, "DnsMessageError!")
+	let suffix = match &self.kind {
+	    DnsMessageErrorKind::Io(e) => format!("{}", e),
+	    DnsMessageErrorKind::StringEncoding(e) => format!("{}", e),
+	    DnsMessageErrorKind::TooManyQuestions => "Too many DNS questions in request".to_string(),
+	    DnsMessageErrorKind::UnexpectedReadLength => "Read an unexpected amount of data".to_string()
+	};
+	write!(f, "DNS Message Parsing Error: {}", suffix)
     }
 }
 
@@ -93,4 +99,12 @@ impl From<std::string::FromUtf8Error> for DnsMessageError {
 
 	DnsMessageError::new(kind)
     }
+}
+
+#[derive(Debug)]
+pub enum TlsMessageErrorKind {}
+
+#[derive(Debug)]
+pub struct TlsMessageError {
+    kind: TlsMessageErrorKind
 }

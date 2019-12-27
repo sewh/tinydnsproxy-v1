@@ -6,8 +6,8 @@ use std::thread;
 use crate::block_list::BlockLists;
 use crate::config::Config;
 use crate::dns_message;
-use crate::message;
 use crate::tls_connection;
+use crate::tls_message;
 
 #[derive(Debug)]
 pub struct Listener {
@@ -92,7 +92,7 @@ impl Listener {
         // Spin up a new thread to handle this from now on
         thread::spawn(move || {
             // Serialize the raw DNS query into one compatible with DNS-over-TLS
-            let serialized = match message::serialize(&msg) {
+            let serialized = match tls_message::serialize(&msg) {
                 Ok(m) => m,
                 Err(e) => {
                     println!("Error serializing buffer: {}", e);

@@ -11,8 +11,8 @@ mod config;
 mod dns_message;
 mod error;
 mod listener;
-mod message;
 mod tls_connection;
+mod tls_message;
 
 use block_list::{BlockListFormat, BlockLists};
 use config::Config;
