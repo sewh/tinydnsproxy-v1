@@ -3,19 +3,7 @@ use std::io::prelude::*;
 use std::io::SeekFrom;
 use byteorder::{NetworkEndian, ReadBytesExt};
 
-pub struct DnsMessageError;
-
-impl DnsMessageError {
-    pub fn new() -> DnsMessageError {
-	DnsMessageError {}
-    }
-}
-
-impl std::fmt::Debug for DnsMessageError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
-	write!(f, "DNS Message Parsing Error")
-    }
-}
+use crate::error::DnsMessageError;
 
 type HostnameResult = std::result::Result<String, DnsMessageError>;
 type NxDomainResult = std::result::Result<Vec<u8>, DnsMessageError>;
@@ -24,37 +12,19 @@ pub fn hostname_from_bytes(bytes: &[u8]) -> HostnameResult {
     let mut cursor = Cursor::new(bytes);
 
     // Skip to where the questions are
-    match cursor.seek(SeekFrom::Start(4)) {
-	Err(_) => {
-	    let e = DnsMessageError::new();
-	    return Err(e);
-	},
-	_ => ()
-    };
+    cursor.seek(SeekFrom::Start(4))?;
 
-    let questions = match cursor.read_u16::<NetworkEndian>() {
-	Ok(q) => q,
-	Err(_) => {
-	    let e = DnsMessageError::new();
-	    return Err(e);	    
-	}
-    };
+    let questions = cursor.read_u16::<NetworkEndian>()?;
 
     if questions != 1 {
 	// We don't want the hastle of rewriting DNS querys (yet) so
 	// if we have more than one question, we'll just throw an error
-	let e = DnsMessageError::new();
+	let e = DnsMessageError::too_many_questions();
 	return Err(e);
     }
 
     // Now skip to the first question
-    match cursor.seek(SeekFrom::Start(12)) {
-	Err(_) => {
-	    let e = DnsMessageError::new();
-	    return Err(e);
-	},
-	_ => ()
-    };
+    cursor.seek(SeekFrom::Start(12))?;
 
     // Now read the string in DNS format
     let mut hostname_buff: Vec<u8> = Vec::new();
@@ -62,7 +32,7 @@ pub fn hostname_from_bytes(bytes: &[u8]) -> HostnameResult {
 	let mut size_buff = vec![0; 1];
 	if let Ok(result) = cursor.read(&mut size_buff) {
 	    if result != 1 {
-		let e = DnsMessageError::new();
+		let e = DnsMessageError::unexpected_read_length();
 		return Err(e);
 	    }
 	}
@@ -78,7 +48,7 @@ pub fn hostname_from_bytes(bytes: &[u8]) -> HostnameResult {
 	    let mut byte_buff = vec![0; 1];
 	    if let Ok(result) = cursor.read(&mut byte_buff) {
 		if result != 1 {
-		    let e = DnsMessageError::new();
+		    let e = DnsMessageError::unexpected_read_length();
 		    return Err(e);
 		}
 	    }
@@ -88,14 +58,8 @@ pub fn hostname_from_bytes(bytes: &[u8]) -> HostnameResult {
 	hostname_buff.push('.' as u8);
 
     }
-    
-    let as_string = match String::from_utf8(hostname_buff) {
-	Ok(s) => s,
-	Err(_) => {
-	    let e = DnsMessageError::new();
-	    return Err(e);	    
-	}
-    };
+
+    let as_string = String::from_utf8(hostname_buff)?;
 
     Ok(as_string)
 }
@@ -106,21 +70,9 @@ pub fn create_nxdomain(request: &[u8]) -> NxDomainResult {
     let response_bytes = vec![0x81, 0x83];
 
     // We replace the flags to make it look like NXDomain
-    match cursor.seek(SeekFrom::Start(2)) {
-	Err(_) => {
-	    let e = DnsMessageError::new();
-	    return Err(e);
-	},
-	_ => (),
-    };
+    cursor.seek(SeekFrom::Start(2))?;
 
-    match cursor.write(&response_bytes) {
-	Err(_) => {
-	    let e = DnsMessageError::new();
-	    return Err(e);
-	},
-	_ => (),
-    };
+    cursor.write(&response_bytes)?;
 
     Ok(output)
 }
