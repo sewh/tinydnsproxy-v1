@@ -17,7 +17,6 @@ impl std::fmt::Debug for DnsMessageError {
     }
 }
 
-
 type HostnameResult = std::result::Result<String, DnsMessageError>;
 type NxDomainResult = std::result::Result<Vec<u8>, DnsMessageError>;
 

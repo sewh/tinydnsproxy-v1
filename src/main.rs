@@ -9,6 +9,7 @@ extern crate toml;
 mod block_list;
 mod config;
 mod dns_message;
+mod error;
 mod listener;
 mod message;
 mod tls_connection;

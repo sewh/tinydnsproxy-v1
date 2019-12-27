@@ -2,15 +2,9 @@ use regex::Regex;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
+use crate::error::BlockListError;
+
 pub type Result = std::result::Result<(), BlockListError>;
-
-pub struct BlockListError;
-
-impl BlockListError {
-    pub fn new() -> BlockListError {
-        BlockListError {}
-    }
-}
 
 #[derive(Clone, Debug)]
 pub enum BlockListKind {
@@ -46,12 +40,7 @@ impl BlockLists {
     pub fn add_file(&mut self, path: &String, format: &BlockListFormat) -> Result {
         let mut entries: Vec<String> = Vec::new();
 
-        let file = match File::open(path) {
-            Ok(f) => f,
-            Err(_) => {
-                return Err(BlockListError::new());
-            }
-        };
+        let file = File::open(path)?;
 
         let reader = BufReader::new(file);
 
@@ -64,7 +53,7 @@ impl BlockLists {
         }
 
         if entries.len() == 0 {
-            return Err(BlockListError::new());
+            return Err(BlockListError::no_entries());
         }
 
         let list = BlockList {
