@@ -102,9 +102,44 @@ impl From<std::string::FromUtf8Error> for DnsMessageError {
 }
 
 #[derive(Debug)]
-pub enum TlsMessageErrorKind {}
+pub enum TlsMessageErrorKind {
+    Io(std::io::Error),
+    ProtocolSizeMismatch,
+    BadInputData,
+}
 
 #[derive(Debug)]
 pub struct TlsMessageError {
     kind: TlsMessageErrorKind
+}
+
+impl TlsMessageError {
+    pub fn new(kind: TlsMessageErrorKind) -> Self {
+	TlsMessageError {kind}
+    }
+
+    pub fn protocol_size_mismatch() -> Self {
+	let k = TlsMessageErrorKind::ProtocolSizeMismatch;
+	TlsMessageError::new(k)
+    }
+
+    pub fn bad_input_data() -> Self {
+	let k = TlsMessageErrorKind::BadInputData;
+	TlsMessageError::new(k)
+    }
+}
+
+impl fmt::Display for TlsMessageError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+	write!(f, "TlsMessageError!")
+    }
+}
+
+impl error::Error for TlsMessageError {}
+
+impl From<std::io::Error> for TlsMessageError {
+    fn from(e: std::io::Error) -> Self {
+	let k = TlsMessageErrorKind::Io(e);
+	TlsMessageError::new(k)
+    }
 }
