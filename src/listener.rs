@@ -104,13 +104,20 @@ impl Listener {
             let mut should_block = false;
             match dns_message::hostname_from_bytes(&msg) {
                 Ok(hostname) => {
-                    // Get a read-only handle to the block lists and check them
-                    match &*block_lists.read().unwrap() {
-                        Some(l) => {
-                            should_block = l.is_blocked(&hostname);
-                        }
-                        None => (),
-                    }
+                    // Get a read-only handle to the block lists and check them. If we
+		    // can't get the handle because the block lists are being updated just
+		    // nope out and let the request pass unblocked
+		    match block_lists.try_read() {
+			Ok(optional) => {
+			    match &*optional {
+				Some(bl) => {
+				    should_block = bl.is_blocked(&hostname);
+				},
+				None => ()
+			    }
+			},
+			Err(_) => ()
+		    }
                 }
                 Err(_) => (), // TODO add some logging or something
             }
