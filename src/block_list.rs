@@ -1,14 +1,25 @@
+use curl::easy::{Easy2, Handler, WriteError};
 use regex::Regex;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
 use crate::error::BlockListError;
 
+struct Collector(Vec<u8>);
+
+impl Handler for Collector {
+    fn write(&mut self, data: &[u8]) -> std::result::Result<usize, WriteError> {
+	self.0.extend_from_slice(data);
+	Ok(data.len())
+    }
+}
+
 pub type Result = std::result::Result<(), BlockListError>;
 
 #[derive(Clone, Debug)]
 pub enum BlockListKind {
     File,
+    Http,
 }
 
 #[derive(Clone, Debug)]
@@ -67,6 +78,43 @@ impl BlockLists {
         self.lists.push(list);
 
         Ok(())
+    }
+
+    pub fn add_http(&mut self, url: &String, format: &BlockListFormat) -> Result {
+	let mut easy = Easy2::new(Collector(Vec::new()));
+	easy.get(true)?;
+	easy.url(url.as_str())?;
+	easy.perform()?;
+
+	if easy.response_code()? != 200 {
+	    return Err(BlockListError::http_not_ok());
+	}
+
+	let contents = easy.get_ref();
+	let result = String::from_utf8_lossy(&contents.0);
+
+	let mut entries = Vec::new();
+
+	for line in result.lines() {
+	    if let Some(processed_line) = process_line(&line.to_string(), &format) {
+		entries.push(processed_line);
+	    }
+	}
+
+	if entries.len() == 0 {
+	    return Err(BlockListError::no_entries());
+	}
+
+	let list = BlockList {
+	    kind: BlockListKind::Http,
+	    format: format.clone(),
+	    path: None,
+	    url: Some(url.clone()),
+	    entries: entries
+	};
+
+	self.lists.push(list);
+	Ok(())
     }
 
     pub fn is_blocked(&self, hostname: &String) -> bool {

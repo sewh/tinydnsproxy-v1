@@ -4,6 +4,8 @@ use std::fmt;
 #[derive(Debug)]
 pub enum BlockListErrorKind {
     Io(std::io::Error),
+    Curl(curl::Error),
+    HttpNotOk,
     NoEntries,
 }
 
@@ -20,6 +22,10 @@ impl BlockListError {
     pub fn no_entries() -> Self {
         BlockListError::new(BlockListErrorKind::NoEntries)
     }
+
+    pub fn http_not_ok() -> Self {
+	BlockListError::new(BlockListErrorKind::HttpNotOk)
+    }
 }
 
 impl fmt::Display for BlockListError {
@@ -29,6 +35,8 @@ impl fmt::Display for BlockListError {
         let suffix = match &self.kind {
             Io(e) => format!("{}", e),
             NoEntries => "No block list entries".to_string(),
+	    Curl(e) => format!("{}", e),
+	    HttpNotOk => "Did not received HTTP 200 OK back from server".to_string(),
         };
         write!(f, "Block list error: {}", suffix)
     }
@@ -39,6 +47,12 @@ impl error::Error for BlockListError {}
 impl From<std::io::Error> for BlockListError {
     fn from(e: std::io::Error) -> Self {
         BlockListError::new(BlockListErrorKind::Io(e))
+    }
+}
+
+impl From<curl::Error> for BlockListError {
+    fn from(e: curl::Error) -> Self {
+	BlockListError::new(BlockListErrorKind::Curl(e))
     }
 }
 
