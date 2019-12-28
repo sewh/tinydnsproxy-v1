@@ -30,6 +30,11 @@ list_type = "file"
 format = "one-per-line"
 path = "/tmp/block.2.list"
 
+[[block_list]]
+list_type = "http"
+format = "one-per-line"
+url = "http://127.0.0.1:8000/awesome.block.list"
+
 # The DNS server blocks detail upstream DNS-over-TLS resolvers.
 # The 'ip_address' and 'port' describes how to create a TCP
 # connection with the resolving service. The 'hostname' is used
