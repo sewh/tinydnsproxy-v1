@@ -154,3 +154,60 @@ impl From<std::io::Error> for TlsMessageError {
 	TlsMessageError::new(k)
     }
 }
+
+#[derive(Debug)]
+pub enum DoTErrorKind {
+    NoAvailableServers,
+    Tls(native_tls::Error),
+    TlsHandshake(native_tls::HandshakeError<std::net::TcpStream>),
+    Io(std::io::Error),
+    MessageTooLarge,
+}
+
+#[derive(Debug)]
+pub struct DoTError {
+    kind: DoTErrorKind,
+}
+
+impl DoTError {
+    pub fn new(kind: DoTErrorKind) -> Self {
+	DoTError {kind}
+    }
+
+    pub fn no_available_servers() -> Self {
+	use DoTErrorKind::*;
+	DoTError::new(NoAvailableServers)
+    }
+
+    pub fn message_too_large() -> Self {
+	use DoTErrorKind::*;
+	DoTError::new(MessageTooLarge)
+    }
+}
+
+impl fmt::Display for DoTError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+	write!(f, "DoT Error!")
+    }
+}
+
+impl error::Error for DoTError {}
+
+impl From<native_tls::Error> for DoTError {
+    fn from(e: native_tls::Error) -> Self {
+	DoTError::new(DoTErrorKind::Tls(e))
+    }
+}
+
+impl From<native_tls::HandshakeError<std::net::TcpStream>> for DoTError {
+    fn from(e: native_tls::HandshakeError<std::net::TcpStream>) -> Self {
+	DoTError::new(DoTErrorKind::TlsHandshake(e))
+    }
+}
+
+impl From<std::io::Error> for DoTError {
+    fn from(e: std::io::Error) -> Self {
+	DoTError::new(DoTErrorKind::Io(e))
+    }
+}
+
