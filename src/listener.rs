@@ -87,7 +87,7 @@ impl Listener {
 
     fn handle_request(&self, msg: Vec<u8>, socket: UdpSocket, src: SocketAddr) {
         let c = self.config.clone();
-	let block_lists = self.block_lists.clone();
+        let block_lists = self.block_lists.clone();
 
         // Spin up a new thread to handle this from now on
         thread::spawn(move || {
@@ -100,42 +100,39 @@ impl Listener {
                 }
             };
 
-	    // Check to see if the domain is in the block list
-	    let mut should_block = false;
-	    match dns_message::hostname_from_bytes(&msg) {
-		Ok(hostname) => {
-		    // Get a read-only handle to the block lists and check them
-		    match &*block_lists.read().unwrap() {
-			Some(l) => {
-			    should_block = l.is_blocked(&hostname);
-			},
-			None => (),
-		    }
+            // Check to see if the domain is in the block list
+            let mut should_block = false;
+            match dns_message::hostname_from_bytes(&msg) {
+                Ok(hostname) => {
+                    // Get a read-only handle to the block lists and check them
+                    match &*block_lists.read().unwrap() {
+                        Some(l) => {
+                            should_block = l.is_blocked(&hostname);
+                        }
+                        None => (),
+                    }
+                }
+                Err(_) => (), // TODO add some logging or something
+            }
 
-		},
-		Err(_) => () // TODO add some logging or something
-	    }
-
-	    let res = match should_block {
-		true => {
-		    match dns_message::create_nxdomain(&msg) {
-			Ok(r) => r,
-			Err(_) => {
-			    // TODO add some logging here
-			    return;
-			}
-		    }
-		},
-		false => {
-		    match tls_connection::relay_message(serialized.as_slice(), &c) {
-			Ok(res) => res,
-			Err(e) => {
-			    println!("TLS Error: {}", e);
-			    return;
-			}
-		    }	    
-		}
-	    };
+            let res = match should_block {
+                true => {
+                    match dns_message::create_nxdomain(&msg) {
+                        Ok(r) => r,
+                        Err(_) => {
+                            // TODO add some logging here
+                            return;
+                        }
+                    }
+                }
+                false => match tls_connection::relay_message(serialized.as_slice(), &c) {
+                    Ok(res) => res,
+                    Err(e) => {
+                        println!("TLS Error: {}", e);
+                        return;
+                    }
+                },
+            };
 
             // Send the response back to the client
             match socket.send_to(res.as_slice(), &src) {

@@ -1,10 +1,9 @@
-use std::io::Cursor;
 use byteorder::{NetworkEndian, ReadBytesExt, WriteBytesExt};
+use std::io::Cursor;
 
 use crate::error::TlsMessageError;
 
 type Result<T> = std::result::Result<T, TlsMessageError>;
-
 
 pub fn serialize(to_send: &[u8]) -> Result<Vec<u8>> {
     if to_send.len() == 0 {
@@ -42,7 +41,7 @@ pub fn deserialize(to_unwrap: &[u8]) -> Result<Vec<u8>> {
     buffer.drain(0..2); // Remove the leading size bytes
 
     if read_size as usize != buffer.len() {
-	let e = TlsMessageError::protocol_size_mismatch();
+        let e = TlsMessageError::protocol_size_mismatch();
         return Err(e);
     }
 

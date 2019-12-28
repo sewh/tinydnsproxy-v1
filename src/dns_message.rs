@@ -1,7 +1,7 @@
-use std::io::Cursor;
-use std::io::prelude::*;
-use std::io::SeekFrom;
 use byteorder::{NetworkEndian, ReadBytesExt};
+use std::io::prelude::*;
+use std::io::Cursor;
+use std::io::SeekFrom;
 
 use crate::error::DnsMessageError;
 
@@ -17,10 +17,10 @@ pub fn hostname_from_bytes(bytes: &[u8]) -> HostnameResult {
     let questions = cursor.read_u16::<NetworkEndian>()?;
 
     if questions != 1 {
-	// We don't want the hastle of rewriting DNS querys (yet) so
-	// if we have more than one question, we'll just throw an error
-	let e = DnsMessageError::too_many_questions();
-	return Err(e);
+        // We don't want the hastle of rewriting DNS querys (yet) so
+        // if we have more than one question, we'll just throw an error
+        let e = DnsMessageError::too_many_questions();
+        return Err(e);
     }
 
     // Now skip to the first question
@@ -29,34 +29,33 @@ pub fn hostname_from_bytes(bytes: &[u8]) -> HostnameResult {
     // Now read the string in DNS format
     let mut hostname_buff: Vec<u8> = Vec::new();
     loop {
-	let mut size_buff = vec![0; 1];
-	if let Ok(result) = cursor.read(&mut size_buff) {
-	    if result != 1 {
-		let e = DnsMessageError::unexpected_read_length();
-		return Err(e);
-	    }
-	}
+        let mut size_buff = vec![0; 1];
+        if let Ok(result) = cursor.read(&mut size_buff) {
+            if result != 1 {
+                let e = DnsMessageError::unexpected_read_length();
+                return Err(e);
+            }
+        }
 
-	if size_buff[0] == 0x0 {
-	    // Remove last dot and then bail
-	    let new_size = hostname_buff.len() - 1;
-	    hostname_buff.truncate(new_size);
-	    break;
-	}
+        if size_buff[0] == 0x0 {
+            // Remove last dot and then bail
+            let new_size = hostname_buff.len() - 1;
+            hostname_buff.truncate(new_size);
+            break;
+        }
 
-	for _ in 0..size_buff[0] {
-	    let mut byte_buff = vec![0; 1];
-	    if let Ok(result) = cursor.read(&mut byte_buff) {
-		if result != 1 {
-		    let e = DnsMessageError::unexpected_read_length();
-		    return Err(e);
-		}
-	    }
-	    hostname_buff.push(byte_buff[0]);
-	}
+        for _ in 0..size_buff[0] {
+            let mut byte_buff = vec![0; 1];
+            if let Ok(result) = cursor.read(&mut byte_buff) {
+                if result != 1 {
+                    let e = DnsMessageError::unexpected_read_length();
+                    return Err(e);
+                }
+            }
+            hostname_buff.push(byte_buff[0]);
+        }
 
-	hostname_buff.push('.' as u8);
-
+        hostname_buff.push('.' as u8);
     }
 
     let as_string = String::from_utf8(hostname_buff)?;
@@ -89,12 +88,12 @@ mod tests {
             0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00,
         ];
-	let expected: String = "mail.google.com".to_string();
+        let expected: String = "mail.google.com".to_string();
 
-	let hostname_res = hostname_from_bytes(&msg);
-	assert!(hostname_res.is_ok());
+        let hostname_res = hostname_from_bytes(&msg);
+        assert!(hostname_res.is_ok());
 
-	let hostname = hostname_res.unwrap();
-	assert_eq!(hostname, expected);
+        let hostname = hostname_res.unwrap();
+        assert_eq!(hostname, expected);
     }
 }

@@ -60,12 +60,12 @@ fn main() {
             let path = match &entry.path {
                 Some(p) => p,
                 None => {
-		    println!("There is a file block list entry without a path!");
-		    continue;
-		},
+                    println!("There is a file block list entry without a path!");
+                    continue;
+                }
             };
             if block_lists.add_file(&path, &format).is_err() {
-		println!("Couldn't add file {}", path);
+                println!("Couldn't add file {}", path);
                 continue;
             }
         }
