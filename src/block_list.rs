@@ -48,6 +48,21 @@ impl BlockLists {
         BlockLists { lists }
     }
 
+    pub fn reload_lists(&mut self) -> Result {
+	let old_lists = self.lists.clone();
+	self.lists = Vec::new();
+
+	for list in &old_lists {
+	    match &list.kind {
+		// TODO make this more resilient
+		BlockListKind::File => self.add_file(list.path.as_ref().unwrap(), &list.format)?,
+		BlockListKind::Http => self.add_http(list.url.as_ref().unwrap(), &list.format)?,
+	    };
+	}
+
+	Ok(())
+    }
+
     pub fn add_file(&mut self, path: &String, format: &BlockListFormat) -> Result {
         let mut entries: Vec<String> = Vec::new();
 

@@ -4,6 +4,11 @@ use std::io;
 use toml;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct BlockLists {
+    pub refresh_after: Option<u64>
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct BlockList {
     pub list_type: String,
     pub format: String,
@@ -27,6 +32,7 @@ pub struct DnsServer {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
     pub bind: BindDetails,
+    pub block_lists: Option<BlockLists>,
     pub block_list: Vec<BlockList>,
     pub dns_server: Vec<DnsServer>,
 }
@@ -54,6 +60,9 @@ mod tests {
 [bind]
 host = "0.0.0.0"
 port = 53
+
+[block_lists]
+refresh_after = 30
 
 [[block_list]]
 list_type = "file"
@@ -127,5 +136,9 @@ hostname = "dns.google"
             assert_eq!(list_already_done.format, list_from_config.format);
             assert_eq!(list_already_done.path, list_from_config.path);
         }
+
+	let block_lists = c.block_lists.unwrap();
+	let refresh_after = block_lists.refresh_after.unwrap();
+	assert_eq!(refresh_after, 30);
     }
 }

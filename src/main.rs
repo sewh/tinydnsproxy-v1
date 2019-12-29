@@ -90,6 +90,9 @@ fn main() {
     // Set blocks lists
     listener.set_blocklists(block_lists);
 
+    // Start up auto update thread
+    listener.start_reload_thread();
+
     // Begin listening and serving
     println!(
         "Starting listener on UDP {}:{}",

@@ -8,6 +8,15 @@
 host = "127.0.0.1"
 port = 53535
 
+# The 'block_lists' section contains config that's general to
+# all block lists. Specifically, there are the following parameters:
+#
+# * refresh_after :: How long (in minutes) to wait before refreshing
+#   the block lists.
+
+[block_lists]
+refresh_after = 30
+
 # The block list details the location and type of a block
 # list to use. tinydnsproxy currently supports:
 #
