@@ -51,16 +51,44 @@ impl BlockLists {
     pub fn reload_lists(&mut self) -> Result {
 	let old_lists = self.lists.clone();
 	self.lists = Vec::new();
+	let mut updated = 0;
 
+	// We're going to use unwrap here since it makes the code cleaner and there has already
+	// been validation to make sure they should be a 'Some' value.
 	for list in &old_lists {
 	    match &list.kind {
-		// TODO make this more resilient
-		BlockListKind::File => self.add_file(list.path.as_ref().unwrap(), &list.format)?,
-		BlockListKind::Http => self.add_http(list.url.as_ref().unwrap(), &list.format)?,
+		BlockListKind::File => match self.add_file(list.path.as_ref().unwrap(), &list.format) {
+		    Ok(_) => {
+			debug!("Refreshed block list at {}", list.path.as_ref().unwrap());
+			updated += 1;
+		    },
+		    Err(e) => {
+			warn!("Could not refresh block list at {} - Reason: {}", list.path.as_ref().unwrap(), e);
+			// Add old block list back into the list
+			self.lists.push(list.clone());
+			continue;
+		    }
+		},
+		BlockListKind::Http => match self.add_http(list.url.as_ref().unwrap(), &list.format) {
+		    Ok(_) => {
+			debug!("Refreshed block list at {}", list.url.as_ref().unwrap());
+			updated += 1;
+		    },
+		    Err(e) => {
+			warn!("Could not refresh block list at {} - Reason: {}", list.url.as_ref().unwrap(), e);
+			// Add old block list back into the list
+			self.lists.push(list.clone());
+			continue;
+		    }
+		}
 	    };
 	}
 
-	Ok(())
+	if updated == 0 {
+	    return Err(BlockListError::no_entries())
+	} else {
+	    return Ok(())
+	}
     }
 
     pub fn add_file(&mut self, path: &String, format: &BlockListFormat) -> Result {
