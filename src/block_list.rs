@@ -50,7 +50,7 @@ impl BlockLists {
 
     pub fn reload_lists(&mut self) -> Result {
 	let old_lists = self.lists.clone();
-	self.lists = Vec::new();
+	self.lists.truncate(0);
 	let mut updated = 0;
 
 	// We're going to use unwrap here since it makes the code cleaner and there has already
@@ -83,6 +83,8 @@ impl BlockLists {
 		}
 	    };
 	}
+
+	std::mem::drop(old_lists);
 
 	if updated == 0 {
 	    return Err(BlockListError::no_entries())

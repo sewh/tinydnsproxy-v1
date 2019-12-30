@@ -63,7 +63,6 @@ impl Listener {
 		}
 
 		if current_instant.elapsed().as_secs() > interval_seconds {
-		    // let mut bl_mutex = Arc::get_mut(&mut block_lists).unwrap();
 		    let mut bl_option = match block_lists.write() {
 			Ok(bl_option) => bl_option,
 			Err(_) => {
