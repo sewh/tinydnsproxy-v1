@@ -15,7 +15,7 @@ grepcmd=""
 if [[ "$(uname)" = "Darwin" ]]; then
     grepcmd="ggrep"
 
-    [[ -z "$(command -v ${grepcmd})" ]] && terminate "Cannot find GNU grep (brew install grep)"
+    [[ -z "$(command -v ${grepcmd})" ]] && terminate "Cannot find GNU grep (brew install grep)" "1"
 else
     grepcmd="grep"
 fi
@@ -42,7 +42,7 @@ port="853"
 # Get the server common name
 cn="$(openssl s_client -showcerts -connect ${server}:853 </dev/null 2>/dev/null | openssl x509 -subject | ${grepcmd} -Po 'CN=\K.*')"
 
-[[ "${?}" != "0" ]] && terminate "openssl couldn't connect to supplied IP"
+[[ "${?}" != "0" ]] && terminate "openssl couldn't connect to supplied IP" "1"
 
 # Construct the final string
 
