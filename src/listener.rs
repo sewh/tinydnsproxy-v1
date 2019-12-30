@@ -1,7 +1,7 @@
 use std::io;
 use std::net::{SocketAddr, UdpSocket};
 use std::sync::{atomic, Arc, RwLock};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use std::thread;
 
 use crate::block_list::BlockLists;
@@ -94,7 +94,9 @@ impl Listener {
 		    current_instant = Instant::now();
 
 		    std::mem::drop(bl_option);
+
 		}
+		thread::sleep(Duration::from_secs(1));
 	    }
 	    info!("Stopping block list update thread");
 	});
@@ -120,7 +122,7 @@ impl Listener {
     pub fn listen_and_serve(&self) -> io::Result<()> {
         let conn_string = format!("{}:{}", self.config.bind.host, self.config.bind.port);
         let socket = UdpSocket::bind(conn_string)?;
-	socket.set_nonblocking(true)?;
+	socket.set_read_timeout(Some(Duration::from_secs(1)))?;
         let mut buffer = vec![0; 8192];
         loop {
 
@@ -132,7 +134,12 @@ impl Listener {
 	    // opportunity to check if we should shutdown
             let (amt, src) = match socket.recv_from(buffer.as_mut_slice()) {
                 Ok(res) => res,
-		Err(e) if e.kind() == io::ErrorKind::WouldBlock => continue,
+		Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+		    continue;
+		},
+		Err(e) if e.kind() == io::ErrorKind::TimedOut => {
+		    continue;
+		},
                 Err(e) => {
                     warn!("Error: {}", e);
                     continue;
