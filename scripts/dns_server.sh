@@ -13,9 +13,9 @@ function terminate() {
 
 grepcmd=""
 if [[ "$(uname)" = "Darwin" ]]; then
-    grep_cmd="ggrep"
+    grepcmd="ggrep"
 
-    [[ -z "${grep_cmd}" ]] && terminate "Cannot find GNU grep (brew install grep)"
+    [[ -z "$(command -v ${grepcmd})" ]] && terminate "Cannot find GNU grep (brew install grep)"
 else
     grepcmd="grep"
 fi
@@ -40,7 +40,7 @@ port="853"
 [[ -z "${2}" ]] || port="$2"
 
 # Get the server common name
-cn="$(openssl s_client -showcerts -connect ${server}:853 </dev/null 2>/dev/null | openssl x509 -subject | ggrep -Po 'CN=\K.*')"
+cn="$(openssl s_client -showcerts -connect ${server}:853 </dev/null 2>/dev/null | openssl x509 -subject | ${grepcmd} -Po 'CN=\K.*')"
 
 [[ "${?}" != "0" ]] && terminate "openssl couldn't connect to supplied IP"
 
