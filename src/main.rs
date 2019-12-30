@@ -1,4 +1,7 @@
 #[macro_use]
+extern crate log;
+extern crate env_logger;
+#[macro_use]
 extern crate lazy_static;
 extern crate native_tls;
 extern crate curl;
@@ -22,6 +25,8 @@ use std::env;
 use std::process::exit;
 
 fn main() {
+    env_logger::Builder::from_default_env().filter_level(log::LevelFilter::Info).init();
+
     // Validate arguments and collect them into a vector
     let args_iterator = env::args();
     if args_iterator.len() != 2 {
@@ -40,7 +45,7 @@ fn main() {
     let config = match Config::from_toml(config_path) {
         Ok(c) => c,
         Err(e) => {
-            println!("Error loading config: {}", e);
+            error!("Error loading config: {}", e);
             exit(1);
         }
     };
@@ -52,7 +57,7 @@ fn main() {
             "hosts" => BlockListFormat::Hosts,
             "one-per-line" => BlockListFormat::OnePerLine,
             _ => {
-                println!("Unknown block list format: {}", entry.format);
+                error!("Unknown block list format: {}", entry.format);
                 exit(1);
             }
         };
@@ -61,24 +66,24 @@ fn main() {
             let path = match &entry.path {
                 Some(p) => p,
                 None => {
-                    println!("There is a file block list entry without a path!");
+                    warn!("There is a file block list entry without a path!");
                     continue;
                 }
             };
             if block_lists.add_file(&path, &format).is_err() {
-                println!("Couldn't add file {}", path);
+                warn!("Couldn't add file {}", path);
                 continue;
             }
         } else if entry.list_type == "http" {
 	    let url = match &entry.url {
 		Some(u) => u,
 		None => {
-		    println!("There is a http block list entry without a URL!");
+		    warn!("There is a http block list entry without a URL!");
 		    continue;
 		}
 	    };
 	    if block_lists.add_http(&url, &format).is_err() {
-		println!("Couldn't add HTTP URL {}", url);
+		warn!("Couldn't add HTTP URL {}", url);
 		continue;
 	    }
 	}
@@ -94,14 +99,14 @@ fn main() {
     listener.start_reload_thread();
 
     // Begin listening and serving
-    println!(
+    info!(
         "Starting listener on UDP {}:{}",
         config.bind.host, config.bind.port
     );
     let res = listener.listen_and_serve();
     match res {
-        Ok(_) => println!("Done with no errors"),
-        Err(e) => println!("Failed: {}", e),
+        Ok(_) => info!("Done with no errors"),
+        Err(e) => error!("Failed: {}", e),
     };
 
     exit(0);

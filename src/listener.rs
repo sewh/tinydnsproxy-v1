@@ -22,7 +22,7 @@ impl Listener {
     pub fn from_config(config: &Config) -> Listener {
         let c = config.clone();
         let block_lists = Arc::new(RwLock::new(None));
-        let mut l = Listener {
+        let l = Listener {
             config: c,
             block_lists: block_lists,
 	    should_stop: Arc::new(atomic::AtomicBool::new(false)),
@@ -51,7 +51,7 @@ impl Listener {
 	let interval_seconds = refresh_after * 60;
 	let block_lists = Arc::clone(&self.block_lists);
 
-	println!("Will reload block lists every {} minutes", refresh_after);
+	info!("Will reload block lists every {} minutes", refresh_after);
 
 	// Okay, we have a proper refresh after
 	let t = thread::spawn(move || {
@@ -84,10 +84,10 @@ impl Listener {
 		    // TODO add some proper error handling stuff here
 		    match bl.reload_lists() {
 			Ok(_) => {
-			    println!("Reloaded block lists successfully")
+			    info!("Reloaded block lists successfully")
 			},
 			Err(e) => {
-			    println!("Couldn't refresh block lists: {}", e)
+			    warn!("Couldn't refresh block lists: {}", e)
 			}
 		    }
 
@@ -96,7 +96,7 @@ impl Listener {
 		    std::mem::drop(bl_option);
 		}
 	    }
-	    println!("Stopping block list update thread");
+	    info!("Stopping block list update thread");
 	});
 
 	self.reload_thread = Some(t);
@@ -134,7 +134,7 @@ impl Listener {
                 Ok(res) => res,
 		Err(e) if e.kind() == io::ErrorKind::WouldBlock => continue,
                 Err(e) => {
-                    println!("Error: {}", e);
+                    warn!("Error: {}", e);
                     continue;
                 }
             };
@@ -172,7 +172,7 @@ impl Listener {
             let serialized = match tls_message::serialize(&msg) {
                 Ok(m) => m,
                 Err(e) => {
-                    println!("Error serializing buffer: {}", e);
+                    warn!("Error serializing buffer: {}", e);
                     return;
                 }
             };
@@ -188,15 +188,18 @@ impl Listener {
 			Ok(optional) => {
 			    match &*optional {
 				Some(bl) => {
+				    debug!("Blocking domain: {}", hostname);
 				    should_block = bl.is_blocked(&hostname);
 				},
-				None => ()
+				None => debug!("Not blocking domain: {}", hostname),
 			    }
 			},
-			Err(_) => ()
+			Err(_) => (),
 		    }
                 }
-                Err(_) => (), // TODO add some logging or something
+                Err(_) => {
+		    warn!("Could not extract hostname from DNS(?) message!");
+		},
             }
 
             let res = match should_block {
@@ -204,7 +207,7 @@ impl Listener {
                     match dns_message::create_nxdomain(&msg) {
                         Ok(r) => r,
                         Err(_) => {
-                            // TODO add some logging here
+                            warn!("Could not create a NX domain message!");
                             return;
                         }
                     }
@@ -212,7 +215,7 @@ impl Listener {
                 false => match tls_connection::relay_message(serialized.as_slice(), &c) {
                     Ok(res) => res,
                     Err(e) => {
-                        println!("TLS Error: {}", e);
+                        warn!("TLS Error: {}", e);
                         return;
                     }
                 },
@@ -222,7 +225,7 @@ impl Listener {
             match socket.send_to(res.as_slice(), &src) {
                 Ok(_) => (),
                 Err(e) => {
-                    println!("Error sending response: {}", e);
+                    warn!("Error sending response: {}", e);
                     return;
                 }
             }
