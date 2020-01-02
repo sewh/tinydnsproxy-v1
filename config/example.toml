@@ -23,6 +23,11 @@ refresh_after = 30
 # * Local files :: 'list_type' should be 'file' and 'path'
 #   should point at the location on disk of the file.
 #
+# * Remote HTTP :: 'list_type' should be 'http' and 'url'
+#   should point at the URL of a blocklist on the internet.
+#   The blocklist will be downloaded each time tinydnsserver
+#   is started and each time the block lists are refreshed.
+#
 # There are a few different file formats we support. 'hosts',
 # which is the format of hosts.txt files (e.g. entry on each
 # line, each entry is [IP to redirect to] [hostname]). The
