@@ -3,6 +3,7 @@ tinydnsproxy
 
 tinydnsproxy is a small program that acts as a local DNS resolver that relays requests on to DNS-over-TLS servers exclusively. I wrote this because:
 
+* I wanted a small resolver for my local network;
 * I wanted a resolver that forces all upstream requests to be over DNS-over-TLS;
 * I wanted a resolver that uses and auto-updates blocklists;
 * I wanted a small, focused, tool with only the features I need;
