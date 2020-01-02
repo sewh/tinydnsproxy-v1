@@ -24,7 +24,7 @@ impl BlockListError {
     }
 
     pub fn http_not_ok() -> Self {
-	BlockListError::new(BlockListErrorKind::HttpNotOk)
+        BlockListError::new(BlockListErrorKind::HttpNotOk)
     }
 }
 
@@ -35,8 +35,8 @@ impl fmt::Display for BlockListError {
         let suffix = match &self.kind {
             Io(e) => format!("{}", e),
             NoEntries => "No block list entries".to_string(),
-	    Curl(e) => format!("{}", e),
-	    HttpNotOk => "Did not received HTTP 200 OK back from server".to_string(),
+            Curl(e) => format!("{}", e),
+            HttpNotOk => "Did not received HTTP 200 OK back from server".to_string(),
         };
         write!(f, "Block list error: {}", suffix)
     }
@@ -52,7 +52,7 @@ impl From<std::io::Error> for BlockListError {
 
 impl From<curl::Error> for BlockListError {
     fn from(e: curl::Error) -> Self {
-	BlockListError::new(BlockListErrorKind::Curl(e))
+        BlockListError::new(BlockListErrorKind::Curl(e))
     }
 }
 

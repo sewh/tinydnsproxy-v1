@@ -1,8 +1,8 @@
 use std::io;
 use std::net::{SocketAddr, UdpSocket};
 use std::sync::{atomic, Arc, RwLock};
-use std::time::{Duration, Instant};
 use std::thread;
+use std::time::{Duration, Instant};
 
 use crate::block_list::BlockLists;
 use crate::config::Config;
@@ -25,82 +25,77 @@ impl Listener {
         let l = Listener {
             config: c,
             block_lists: block_lists,
-	    should_stop: Arc::new(atomic::AtomicBool::new(false)),
-	    reload_thread: None,
+            should_stop: Arc::new(atomic::AtomicBool::new(false)),
+            reload_thread: None,
         };
 
-	l
+        l
     }
 
     pub fn start_reload_thread(&mut self) {
-	// Check to make sure we should run a reload thread
-	let block_lists = match &self.config.block_lists {
-	    Some(bl) => bl,
-	    None => return,
-	};
-	let refresh_after = match block_lists.refresh_after {
-	    Some(ra) => ra,
-	    None => return,
-	};
+        // Check to make sure we should run a reload thread
+        let block_lists = match &self.config.block_lists {
+            Some(bl) => bl,
+            None => return,
+        };
+        let refresh_after = match block_lists.refresh_after {
+            Some(ra) => ra,
+            None => return,
+        };
 
-	if refresh_after == 0 {
-	    return;
-	}
+        if refresh_after == 0 {
+            return;
+        }
 
-	let should_stop = self.should_stop.clone();
-	let interval_seconds = refresh_after * 60;
-	let block_lists = Arc::clone(&self.block_lists);
+        let should_stop = self.should_stop.clone();
+        let interval_seconds = refresh_after * 60;
+        let block_lists = Arc::clone(&self.block_lists);
 
-	info!("Will reload block lists every {} minutes", refresh_after);
+        info!("Will reload block lists every {} minutes", refresh_after);
 
-	// Okay, we have a proper refresh after
-	let t = thread::spawn(move || {
-	    let mut current_instant = Instant::now();
-	    loop {
-		// Check if we should stop this thread
-		if should_stop.load(atomic::Ordering::Relaxed) {
-		    break;
-		}
+        // Okay, we have a proper refresh after
+        let t = thread::spawn(move || {
+            let mut current_instant = Instant::now();
+            loop {
+                // Check if we should stop this thread
+                if should_stop.load(atomic::Ordering::Relaxed) {
+                    break;
+                }
 
-		if current_instant.elapsed().as_secs() > interval_seconds {
-		    let mut bl_option = match block_lists.write() {
-			Ok(bl_option) => bl_option,
-			Err(_) => {
-			    current_instant = Instant::now();
-			    continue
-			},
-		    };
+                if current_instant.elapsed().as_secs() > interval_seconds {
+                    let mut bl_option = match block_lists.write() {
+                        Ok(bl_option) => bl_option,
+                        Err(_) => {
+                            current_instant = Instant::now();
+                            continue;
+                        }
+                    };
 
-		    let bl = match &mut *bl_option {
-			Some(bl) => bl,
-			None => {
-			    std::mem::drop(bl_option);
-			    current_instant = Instant::now();
-			    continue;
-			}
-		    };
+                    let bl = match &mut *bl_option {
+                        Some(bl) => bl,
+                        None => {
+                            std::mem::drop(bl_option);
+                            current_instant = Instant::now();
+                            continue;
+                        }
+                    };
 
-		    // TODO add some proper error handling stuff here
-		    match bl.reload_lists() {
-			Ok(_) => {
-			    info!("Reloaded block lists successfully")
-			},
-			Err(e) => {
-			    warn!("Couldn't refresh block lists: {}", e)
-			}
-		    }
+                    // TODO add some proper error handling stuff here
+                    match bl.reload_lists() {
+                        Ok(_) => info!("Reloaded block lists successfully"),
+                        Err(e) => warn!("Couldn't refresh block lists: {}", e),
+                    }
 
-		    current_instant = Instant::now();
+                    current_instant = Instant::now();
 
-		    std::mem::drop(bl_option);
+                    std::mem::drop(bl_option);
+                }
+                thread::sleep(Duration::from_secs(1));
+            }
+            info!("Stopping block list update thread");
+        });
 
-		}
-		thread::sleep(Duration::from_secs(1));
-	    }
-	    info!("Stopping block list update thread");
-	});
-
-	self.reload_thread = Some(t);
+        self.reload_thread = Some(t);
     }
 
     pub fn set_blocklists(&mut self, block_lists: BlockLists) {
@@ -109,36 +104,35 @@ impl Listener {
     }
 
     pub fn _shutdown(&mut self) {
-	self.should_stop.store(true, atomic::Ordering::Relaxed);
+        self.should_stop.store(true, atomic::Ordering::Relaxed);
 
-	if let Some(t) = self.reload_thread.take() {
-	    match t.join() {
-		_ => (),
-	    }
-	}
+        if let Some(t) = self.reload_thread.take() {
+            match t.join() {
+                _ => (),
+            }
+        }
     }
 
     pub fn listen_and_serve(&self) -> io::Result<()> {
         let conn_string = format!("{}:{}", self.config.bind.host, self.config.bind.port);
         let socket = UdpSocket::bind(conn_string)?;
-	socket.set_read_timeout(Some(Duration::from_secs(1)))?;
+        socket.set_read_timeout(Some(Duration::from_secs(1)))?;
         let mut buffer = vec![0; 8192];
         loop {
-
-	    if self.should_stop.load(atomic::Ordering::Relaxed) {
-		break;
-	    }
+            if self.should_stop.load(atomic::Ordering::Relaxed) {
+                break;
+            }
 
             // Await a DNS request. If nothing then loop around again so we get an
-	    // opportunity to check if we should shutdown
+            // opportunity to check if we should shutdown
             let (amt, src) = match socket.recv_from(buffer.as_mut_slice()) {
                 Ok(res) => res,
-		Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
-		    continue;
-		},
-		Err(e) if e.kind() == io::ErrorKind::TimedOut => {
-		    continue;
-		},
+                Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                    continue;
+                }
+                Err(e) if e.kind() == io::ErrorKind::TimedOut => {
+                    continue;
+                }
                 Err(e) => {
                     warn!("Error: {}", e);
                     continue;
@@ -188,36 +182,32 @@ impl Listener {
             match dns_message::hostname_from_bytes(&msg) {
                 Ok(hostname) => {
                     // Get a read-only handle to the block lists and check them. If we
-		    // can't get the handle because the block lists are being updated just
-		    // nope out and let the request pass unblocked
-		    match block_lists.try_read() {
-			Ok(optional) => {
-			    match &*optional {
-				Some(bl) => {
-				    debug!("Blocking domain: {}", hostname);
-				    should_block = bl.is_blocked(&hostname);
-				},
-				None => debug!("Not blocking domain: {}", hostname),
-			    }
-			},
-			Err(_) => (),
-		    }
+                    // can't get the handle because the block lists are being updated just
+                    // nope out and let the request pass unblocked
+                    match block_lists.try_read() {
+                        Ok(optional) => match &*optional {
+                            Some(bl) => {
+                                debug!("Blocking domain: {}", hostname);
+                                should_block = bl.is_blocked(&hostname);
+                            }
+                            None => debug!("Not blocking domain: {}", hostname),
+                        },
+                        Err(_) => (),
+                    }
                 }
                 Err(_) => {
-		    warn!("Could not extract hostname from DNS(?) message!");
-		},
+                    warn!("Could not extract hostname from DNS(?) message!");
+                }
             }
 
             let res = match should_block {
-                true => {
-                    match dns_message::create_nxdomain(&msg) {
-                        Ok(r) => r,
-                        Err(_) => {
-                            warn!("Could not create a NX domain message!");
-                            return;
-                        }
+                true => match dns_message::create_nxdomain(&msg) {
+                    Ok(r) => r,
+                    Err(_) => {
+                        warn!("Could not create a NX domain message!");
+                        return;
                     }
-                }
+                },
                 false => match tls_connection::relay_message(serialized.as_slice(), &c) {
                     Ok(res) => res,
                     Err(e) => {

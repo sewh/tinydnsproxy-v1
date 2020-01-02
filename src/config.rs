@@ -5,7 +5,7 @@ use toml;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct BlockLists {
-    pub refresh_after: Option<u64>
+    pub refresh_after: Option<u64>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -137,8 +137,8 @@ hostname = "dns.google"
             assert_eq!(list_already_done.path, list_from_config.path);
         }
 
-	let block_lists = c.block_lists.unwrap();
-	let refresh_after = block_lists.refresh_after.unwrap();
-	assert_eq!(refresh_after, 30);
+        let block_lists = c.block_lists.unwrap();
+        let refresh_after = block_lists.refresh_after.unwrap();
+        assert_eq!(refresh_after, 30);
     }
 }

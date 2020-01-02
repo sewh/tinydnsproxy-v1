@@ -3,8 +3,8 @@ extern crate log;
 extern crate env_logger;
 #[macro_use]
 extern crate lazy_static;
-extern crate native_tls;
 extern crate curl;
+extern crate native_tls;
 extern crate rand;
 extern crate regex;
 extern crate serde;
@@ -25,7 +25,9 @@ use std::env;
 use std::process::exit;
 
 fn main() {
-    env_logger::Builder::from_default_env().filter_level(log::LevelFilter::Info).init();
+    env_logger::Builder::from_default_env()
+        .filter_level(log::LevelFilter::Info)
+        .init();
 
     // Validate arguments and collect them into a vector
     let args_iterator = env::args();
@@ -75,18 +77,18 @@ fn main() {
                 continue;
             }
         } else if entry.list_type == "http" {
-	    let url = match &entry.url {
-		Some(u) => u,
-		None => {
-		    warn!("There is a http block list entry without a URL!");
-		    continue;
-		}
-	    };
-	    if block_lists.add_http(&url, &format).is_err() {
-		warn!("Couldn't add HTTP URL {}", url);
-		continue;
-	    }
-	}
+            let url = match &entry.url {
+                Some(u) => u,
+                None => {
+                    warn!("There is a http block list entry without a URL!");
+                    continue;
+                }
+            };
+            if block_lists.add_http(&url, &format).is_err() {
+                warn!("Couldn't add HTTP URL {}", url);
+                continue;
+            }
+        }
     }
 
     // Use the config to create a listener

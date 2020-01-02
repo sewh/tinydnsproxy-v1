@@ -9,8 +9,8 @@ struct Collector(Vec<u8>);
 
 impl Handler for Collector {
     fn write(&mut self, data: &[u8]) -> std::result::Result<usize, WriteError> {
-	self.0.extend_from_slice(data);
-	Ok(data.len())
+        self.0.extend_from_slice(data);
+        Ok(data.len())
     }
 }
 
@@ -49,48 +49,60 @@ impl BlockLists {
     }
 
     pub fn reload_lists(&mut self) -> Result {
-	let old_lists = self.lists.clone();
-	self.lists.truncate(0);
-	let mut updated = 0;
+        let old_lists = self.lists.clone();
+        self.lists.truncate(0);
+        let mut updated = 0;
 
-	// We're going to use unwrap here since it makes the code cleaner and there has already
-	// been validation to make sure they should be a 'Some' value.
-	for list in &old_lists {
-	    match &list.kind {
-		BlockListKind::File => match self.add_file(list.path.as_ref().unwrap(), &list.format) {
-		    Ok(_) => {
-			debug!("Refreshed block list at {}", list.path.as_ref().unwrap());
-			updated += 1;
-		    },
-		    Err(e) => {
-			warn!("Could not refresh block list at {} - Reason: {}", list.path.as_ref().unwrap(), e);
-			// Add old block list back into the list
-			self.lists.push(list.clone());
-			continue;
-		    }
-		},
-		BlockListKind::Http => match self.add_http(list.url.as_ref().unwrap(), &list.format) {
-		    Ok(_) => {
-			debug!("Refreshed block list at {}", list.url.as_ref().unwrap());
-			updated += 1;
-		    },
-		    Err(e) => {
-			warn!("Could not refresh block list at {} - Reason: {}", list.url.as_ref().unwrap(), e);
-			// Add old block list back into the list
-			self.lists.push(list.clone());
-			continue;
-		    }
-		}
-	    };
-	}
+        // We're going to use unwrap here since it makes the code cleaner and there has already
+        // been validation to make sure they should be a 'Some' value.
+        for list in &old_lists {
+            match &list.kind {
+                BlockListKind::File => {
+                    match self.add_file(list.path.as_ref().unwrap(), &list.format) {
+                        Ok(_) => {
+                            debug!("Refreshed block list at {}", list.path.as_ref().unwrap());
+                            updated += 1;
+                        }
+                        Err(e) => {
+                            warn!(
+                                "Could not refresh block list at {} - Reason: {}",
+                                list.path.as_ref().unwrap(),
+                                e
+                            );
+                            // Add old block list back into the list
+                            self.lists.push(list.clone());
+                            continue;
+                        }
+                    }
+                }
+                BlockListKind::Http => {
+                    match self.add_http(list.url.as_ref().unwrap(), &list.format) {
+                        Ok(_) => {
+                            debug!("Refreshed block list at {}", list.url.as_ref().unwrap());
+                            updated += 1;
+                        }
+                        Err(e) => {
+                            warn!(
+                                "Could not refresh block list at {} - Reason: {}",
+                                list.url.as_ref().unwrap(),
+                                e
+                            );
+                            // Add old block list back into the list
+                            self.lists.push(list.clone());
+                            continue;
+                        }
+                    }
+                }
+            };
+        }
 
-	std::mem::drop(old_lists);
+        std::mem::drop(old_lists);
 
-	if updated == 0 {
-	    return Err(BlockListError::no_entries())
-	} else {
-	    return Ok(())
-	}
+        if updated == 0 {
+            return Err(BlockListError::no_entries());
+        } else {
+            return Ok(());
+        }
     }
 
     pub fn add_file(&mut self, path: &String, format: &BlockListFormat) -> Result {
@@ -126,40 +138,40 @@ impl BlockLists {
     }
 
     pub fn add_http(&mut self, url: &String, format: &BlockListFormat) -> Result {
-	let mut easy = Easy2::new(Collector(Vec::new()));
-	easy.get(true)?;
-	easy.url(url.as_str())?;
-	easy.perform()?;
+        let mut easy = Easy2::new(Collector(Vec::new()));
+        easy.get(true)?;
+        easy.url(url.as_str())?;
+        easy.perform()?;
 
-	if easy.response_code()? != 200 {
-	    return Err(BlockListError::http_not_ok());
-	}
+        if easy.response_code()? != 200 {
+            return Err(BlockListError::http_not_ok());
+        }
 
-	let contents = easy.get_ref();
-	let result = String::from_utf8_lossy(&contents.0);
+        let contents = easy.get_ref();
+        let result = String::from_utf8_lossy(&contents.0);
 
-	let mut entries = Vec::new();
+        let mut entries = Vec::new();
 
-	for line in result.lines() {
-	    if let Some(processed_line) = process_line(&line.to_string(), &format) {
-		entries.push(processed_line);
-	    }
-	}
+        for line in result.lines() {
+            if let Some(processed_line) = process_line(&line.to_string(), &format) {
+                entries.push(processed_line);
+            }
+        }
 
-	if entries.len() == 0 {
-	    return Err(BlockListError::no_entries());
-	}
+        if entries.len() == 0 {
+            return Err(BlockListError::no_entries());
+        }
 
-	let list = BlockList {
-	    kind: BlockListKind::Http,
-	    format: format.clone(),
-	    path: None,
-	    url: Some(url.clone()),
-	    entries: entries
-	};
+        let list = BlockList {
+            kind: BlockListKind::Http,
+            format: format.clone(),
+            path: None,
+            url: Some(url.clone()),
+            entries: entries,
+        };
 
-	self.lists.push(list);
-	Ok(())
+        self.lists.push(list);
+        Ok(())
     }
 
     pub fn is_blocked(&self, hostname: &String) -> bool {
