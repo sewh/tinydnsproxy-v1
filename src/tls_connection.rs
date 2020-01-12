@@ -1,11 +1,12 @@
 use std::io::{Cursor, Read, Write};
 use std::net::TcpStream;
+use std::sync::Arc;
 
 use crate::config::Config;
 use crate::error::DoTError;
 use byteorder::{NetworkEndian, ReadBytesExt};
-use native_tls::TlsConnector;
 use rand::seq::SliceRandom;
+use rustls::{ClientConfig, ClientSession, Stream};
 
 type Result<T> = std::result::Result<T, DoTError>;
 
@@ -21,11 +22,15 @@ pub fn relay_message(msg: &[u8], conf: &Config) -> Result<Vec<u8>> {
     let conn_string = format!("{}:{}", server.ip_address, server.port);
 
     // Create a new TLS connector and TCP stream and glue them together
-    let connector = TlsConnector::new()?;
+    let mut config = ClientConfig::new();
+    config.root_store.add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
+    let rc_config = Arc::new(config);
+    let hostname = webpki::DNSNameRef::try_from_ascii(server.hostname.as_bytes())?;
+    let mut client = ClientSession::new(&rc_config, hostname);
 
-    let stream = TcpStream::connect(conn_string)?;
+    let mut tcp_stream = TcpStream::connect(conn_string)?;
 
-    let mut tls = connector.connect(server.hostname.as_str(), stream)?;
+    let mut tls = Stream::new(&mut client, &mut tcp_stream);
 
     // Write the serialized DNS request into the stream
     tls.write_all(msg)?;

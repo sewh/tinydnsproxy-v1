@@ -172,8 +172,7 @@ impl From<std::io::Error> for TlsMessageError {
 #[derive(Debug)]
 pub enum DoTErrorKind {
     NoAvailableServers,
-    Tls(native_tls::Error),
-    TlsHandshake(native_tls::HandshakeError<std::net::TcpStream>),
+    InvalidDNSName(webpki::InvalidDNSNameError),
     Io(std::io::Error),
     MessageTooLarge,
 }
@@ -201,21 +200,22 @@ impl DoTError {
 
 impl fmt::Display for DoTError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "DoT Error!")
+	use DoTErrorKind::*;
+	let suffix = match &self.kind {
+	    NoAvailableServers => "No DNS over TLS available. Do you have none in the config?".to_string(),
+	    InvalidDNSName(_) => "Bad domain name provided. Is it malformed?".to_string(),
+	    Io(e) => format!("IO error: {}", e),
+	    MessageTooLarge => "DNS-over-TLS message was malformed".to_string(),
+	};
+        write!(f, "DNS-over-TLS Error: {}", suffix)
     }
 }
 
 impl error::Error for DoTError {}
 
-impl From<native_tls::Error> for DoTError {
-    fn from(e: native_tls::Error) -> Self {
-        DoTError::new(DoTErrorKind::Tls(e))
-    }
-}
-
-impl From<native_tls::HandshakeError<std::net::TcpStream>> for DoTError {
-    fn from(e: native_tls::HandshakeError<std::net::TcpStream>) -> Self {
-        DoTError::new(DoTErrorKind::TlsHandshake(e))
+impl From<webpki::InvalidDNSNameError> for DoTError {
+    fn from(e: webpki::InvalidDNSNameError) -> Self {
+        DoTError::new(DoTErrorKind::InvalidDNSName(e))
     }
 }
 

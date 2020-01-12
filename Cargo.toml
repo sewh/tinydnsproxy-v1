@@ -18,6 +18,7 @@ regex = "1"
 rustls = "0.16"
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.5"
+webpki = "0.21"
 webpki-roots = "0.18"
 
 [dev-dependencies]
