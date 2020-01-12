@@ -9,7 +9,8 @@ extern crate regex;
 extern crate rustls;
 extern crate serde;
 extern crate toml;
-extern crate webpki-roots;
+extern crate webpki;
+extern crate webpki_roots;
 
 mod block_list;
 mod config;
