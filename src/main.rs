@@ -1,14 +1,15 @@
-#[macro_use]
-extern crate log;
+extern crate curl;
 extern crate env_logger;
 #[macro_use]
 extern crate lazy_static;
-extern crate curl;
-extern crate native_tls;
+#[macro_use]
+extern crate log;
 extern crate rand;
 extern crate regex;
+extern crate rustls;
 extern crate serde;
 extern crate toml;
+extern crate webpki-roots;
 
 mod block_list;
 mod config;
