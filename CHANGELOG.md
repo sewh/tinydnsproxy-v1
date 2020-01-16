@@ -6,6 +6,7 @@ tinydnsproxy changelog
 The aim of this release is to replace crates that have a native component with crates written in pure Rust. This it to make cross-compiling for static ARM targets easier.
 
 * Replaced native_tls with rustls
+* Replaced curl with reqwest (using rustls)
 
 ## 0.1.0
 
