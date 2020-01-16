@@ -21,7 +21,6 @@ impl BlockListError {
     pub fn no_entries() -> Self {
         BlockListError::new(BlockListErrorKind::NoEntries)
     }
-
 }
 
 impl fmt::Display for BlockListError {
@@ -30,7 +29,7 @@ impl fmt::Display for BlockListError {
 
         let suffix = match &self.kind {
             Io(e) => format!("{}", e),
-	    Reqwest(e) => format!("{}", e),
+            Reqwest(e) => format!("{}", e),
             NoEntries => "No block list entries".to_string(),
         };
         write!(f, "Block list error: {}", suffix)
@@ -47,7 +46,7 @@ impl From<std::io::Error> for BlockListError {
 
 impl From<reqwest::Error> for BlockListError {
     fn from(e: reqwest::Error) -> Self {
-	BlockListError::new(BlockListErrorKind::Reqwest(e))
+        BlockListError::new(BlockListErrorKind::Reqwest(e))
     }
 }
 
@@ -195,13 +194,15 @@ impl DoTError {
 
 impl fmt::Display for DoTError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-	use DoTErrorKind::*;
-	let suffix = match &self.kind {
-	    NoAvailableServers => "No DNS over TLS available. Do you have none in the config?".to_string(),
-	    InvalidDNSName(_) => "Bad domain name provided. Is it malformed?".to_string(),
-	    Io(e) => format!("IO error: {}", e),
-	    MessageTooLarge => "DNS-over-TLS message was malformed".to_string(),
-	};
+        use DoTErrorKind::*;
+        let suffix = match &self.kind {
+            NoAvailableServers => {
+                "No DNS over TLS available. Do you have none in the config?".to_string()
+            }
+            InvalidDNSName(_) => "Bad domain name provided. Is it malformed?".to_string(),
+            Io(e) => format!("IO error: {}", e),
+            MessageTooLarge => "DNS-over-TLS message was malformed".to_string(),
+        };
         write!(f, "DNS-over-TLS Error: {}", suffix)
     }
 }
