@@ -23,7 +23,9 @@ pub fn relay_message(msg: &[u8], conf: &Config) -> Result<Vec<u8>> {
 
     // Create a new TLS connector and TCP stream and glue them together
     let mut config = ClientConfig::new();
-    config.root_store.add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
+    config
+        .root_store
+        .add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
     let rc_config = Arc::new(config);
     let hostname = webpki::DNSNameRef::try_from_ascii(server.hostname.as_bytes())?;
     let mut client = ClientSession::new(&rc_config, hostname);

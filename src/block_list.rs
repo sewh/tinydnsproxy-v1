@@ -128,7 +128,7 @@ impl BlockLists {
     }
 
     pub fn add_http(&mut self, url: &String, format: &BlockListFormat) -> Result {
-	let result = reqwest::blocking::get(url)?.text()?;
+        let result = reqwest::blocking::get(url)?.text()?;
 
         let mut entries = Vec::new();
 
