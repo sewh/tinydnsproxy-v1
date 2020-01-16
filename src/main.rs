@@ -1,4 +1,3 @@
-extern crate curl;
 extern crate env_logger;
 #[macro_use]
 extern crate lazy_static;
@@ -6,6 +5,7 @@ extern crate lazy_static;
 extern crate log;
 extern crate rand;
 extern crate regex;
+extern crate reqwest;
 extern crate rustls;
 extern crate serde;
 extern crate toml;

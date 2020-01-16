@@ -1,18 +1,8 @@
-use curl::easy::{Easy2, Handler, WriteError};
 use regex::Regex;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
 use crate::error::BlockListError;
-
-struct Collector(Vec<u8>);
-
-impl Handler for Collector {
-    fn write(&mut self, data: &[u8]) -> std::result::Result<usize, WriteError> {
-        self.0.extend_from_slice(data);
-        Ok(data.len())
-    }
-}
 
 pub type Result = std::result::Result<(), BlockListError>;
 
@@ -138,17 +128,7 @@ impl BlockLists {
     }
 
     pub fn add_http(&mut self, url: &String, format: &BlockListFormat) -> Result {
-        let mut easy = Easy2::new(Collector(Vec::new()));
-        easy.get(true)?;
-        easy.url(url.as_str())?;
-        easy.perform()?;
-
-        if easy.response_code()? != 200 {
-            return Err(BlockListError::http_not_ok());
-        }
-
-        let contents = easy.get_ref();
-        let result = String::from_utf8_lossy(&contents.0);
+	let result = reqwest::blocking::get(url)?.text()?;
 
         let mut entries = Vec::new();
 
